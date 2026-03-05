@@ -29,11 +29,11 @@
         const { useState, useEffect } = React;
 
         /**
-         * 注意：真正的“微软免费翻译”通常指网页版爬虫接口，这在浏览器前端直接调用会触发跨域(CORS)错误。
-         * 为了保证您在 Cloudflare Pages 上直接运行，我们依然使用 Gemini AI 引擎，
-         * 但我优化了指令，使其模仿微软翻译的专业术语风格，并增加了更详细的错误诊断。
+         * 重要提示：
+         * 请在下面的引号中填入你在 Google AI Studio (https://aistudio.google.com/app/apikey) 
+         * 申请到的免费 API Key。否则会提示 401 授权失败。
          */
-        const apiKey = ""; 
+        const apiKey = ""; // <--- 在这里填入你的 API Key
 
         const LANGUAGES = [
             { key: 'English', zh: '英语' }, { key: 'German', zh: '德语' }, { key: 'French', zh: '法语' },
@@ -64,7 +64,10 @@
         };
 
         const fetchTranslation = async (text, type) => {
-            // 使用 Gemini 2.5 引擎，模拟微软专业翻译的输出
+            if (!apiKey) {
+                throw new Error("检测到 API Key 为空。请先在代码中填入您的密钥。");
+            }
+
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             
             const systemPrompt = type === 'category' 
@@ -93,7 +96,7 @@
                     });
                     
                     if (response.status === 401 || response.status === 403) {
-                        throw new Error("API 密钥无效。请确保您在代码中填入了正确的密钥。");
+                        throw new Error("API 密钥无效或未生效。请检查密钥是否正确，或是否已在 Google AI Studio 启用权限。");
                     }
                     
                     if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
@@ -174,7 +177,9 @@
                                 <div>
                                     <p className="font-bold">翻译遇到问题：</p>
                                     <p>{error}</p>
-                                    <p className="mt-2 text-xs opacity-80">提示：如果是 401 错误，请检查代码中的 apiKey 是否已正确填写。</p>
+                                    <p className="mt-2 text-xs opacity-80 font-semibold text-red-600">
+                                        👉 请检查第 25 行：const apiKey = "你的Key"
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -230,7 +235,7 @@
                     <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
                         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center text-white shadow-lg animate-pulse-slow">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center text-white shadow-lg">
                                     <Icon name="languages" className="w-7 h-7" />
                                 </div>
                                 <div>
