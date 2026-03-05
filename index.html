@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>化妆品 24 国翻译助手</title>
+    <title>化妆品 24 国语言翻译助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
-        body { font-family: 'Noto Sans SC', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .module-card { transition: all 0.3s ease; }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20">
+<body class="bg-slate-50 min-h-screen pb-20 text-slate-800">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -29,111 +29,156 @@
             "立陶宛语": "lt", "马耳他语": "mt", "波兰语": "pl", "罗马尼亚语": "ro", 
             "斯洛伐克语": "sk", "斯洛文尼亚语": "sl"
         };
-
         const LANGUAGES = Object.keys(LANG_MAP);
 
         function App() {
-            const [inputText, setInputText] = useState('');
-            const [translations, setTranslations] = useState({});
-            const [loading, setLoading] = useState(false);
-            const [copyStatus, setCopyStatus] = useState('一键提取结果 (逗号分隔)');
+            // 模块 1 状态
+            const [catInput, setCatInput] = useState('');
+            const [catResults, setCatResults] = useState({});
+            const [catLoading, setCatLoading] = useState(false);
 
-            const translateText = async (text, targetLang) => {
+            // 模块 2 状态
+            const [infoInput, setInfoInput] = useState('');
+            const [infoResults, setInfoResults] = useState({});
+            const [infoLoading, setInfoLoading] = useState(false);
+
+            // 基础翻译函数
+            const translate = async (text, targetLang) => {
+                if (!text.trim()) return "";
                 try {
                     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
                     const response = await fetch(url);
                     const data = await response.json();
-                    // 拼接多行翻译结果
                     return data[0].map(item => item[0]).join('');
-                } catch (error) {
-                    return "翻译出错";
-                }
+                } catch (e) { return "Error"; }
             };
 
-            const handleTranslateAll = async () => {
-                if (!inputText.trim()) return;
+            // 执行翻译逻辑
+            const handleTranslate = async (type) => {
+                const text = type === 'cat' ? catInput : infoInput;
+                const setLoading = type === 'cat' ? setCatLoading : setInfoLoading;
+                const setResults = type === 'cat' ? setCatResults : setInfoResults;
+
+                if (!text.trim()) return;
                 setLoading(true);
-                const results = {};
                 
+                const results = {};
                 const promises = LANGUAGES.map(async (name) => {
-                    const res = await translateText(inputText, LANG_MAP[name]);
-                    results[name] = res;
+                    results[name] = await translate(text, LANG_MAP[name]);
                 });
 
                 await Promise.all(promises);
-                setTranslations(results);
+                setResults(results);
                 setLoading(false);
             };
 
-            const copyToClipboard = () => {
-                const text = LANGUAGES.map(l => translations[l]).filter(Boolean).join(', ');
+            // 一键提取并复制
+            const copyResults = (results) => {
+                const text = LANGUAGES.map(l => results[l]).filter(Boolean).join(', ');
                 if (text) {
                     navigator.clipboard.writeText(text);
-                    setCopyStatus('✅ 已成功复制');
-                    setTimeout(() => setCopyStatus('一键提取结果 (逗号分隔)'), 2000);
+                    alert('已成功提取并复制，内容已按“，”分隔。');
                 }
             };
 
             return (
-                <div className="max-w-6xl mx-auto px-6 py-10">
-                    <header className="mb-8 text-left border-l-4 border-blue-600 pl-4">
-                        <h1 className="text-2xl font-bold text-slate-800 text-balance">化妆品多语言翻译助手</h1>
-                        <p className="text-slate-500 mt-1 text-sm">
-                            输入化妆品品类词、safe use 内容、functions 内容，即刻获取 24 国语言翻译结果
-                        </p>
+                <div className="max-w-7xl mx-auto px-4 py-10">
+                    <header className="mb-12 text-center">
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">化妆品 24 国语言翻译助手</h1>
+                        <p className="text-slate-500 mt-3 text-lg">专业跨境电商化妆品文案多语种解决方案</p>
                     </header>
 
-                    {/* Input Section */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-                        <textarea 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all min-h-[150px] custom-scrollbar"
-                            placeholder="请在此输入内容...&#10;示例：&#10;品类：保湿面霜&#10;Safe Use：避开眼睛周围使用。&#10;Functions：深度补水，锁住水分。"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                        />
-                        <div className="flex justify-between items-center mt-4">
-                            <span className="text-xs text-slate-400 font-medium">支持多行输入，Google 引擎驱动</span>
-                            <button 
-                                onClick={handleTranslateAll}
-                                disabled={loading || !inputText.trim()}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 py-3 rounded-xl transition-all disabled:opacity-30 flex items-center gap-2"
-                            >
-                                {loading && <span className="animate-spin text-lg">⏳</span>}
-                                {loading ? '正在处理 24 国语...' : '立即翻译'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Output Section */}
-                    {Object.keys(translations).length > 0 && (
-                        <div className="animate-in fade-in duration-500">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="font-bold text-slate-700 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    翻译结果汇总
-                                </h2>
-                                <button 
-                                    onClick={copyToClipboard}
-                                    className="text-sm font-bold text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 px-6 py-2 rounded-full transition-all shadow-sm"
-                                >
-                                    {copyStatus}
-                                </button>
+                    <div className="space-y-10">
+                        
+                        {/* 模块 1：本体品类词 */}
+                        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden module-card hover:shadow-md">
+                            <div className="bg-rose-500 px-8 py-4 flex justify-between items-center">
+                                <h2 className="text-white font-bold text-xl">模块一：本体品类词 24 国语言</h2>
+                                <span className="bg-rose-400 text-white text-xs px-2 py-1 rounded">Category Words</span>
                             </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {LANGUAGES.map(lang => (
-                                    <div key={lang} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-                                        <div>
-                                            <div className="text-[11px] font-black text-blue-400 mb-3 uppercase tracking-widest">{lang}</div>
-                                            <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
-                                                {translations[lang]}
-                                            </div>
+                            <div className="p-8">
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-slate-600 mb-2">输入品类词</label>
+                                    <input 
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-lg focus:border-rose-400 outline-none transition-all"
+                                        placeholder="建议不要加前缀词，如果是眼影直接输入 eyeshadow，如果是体绘直接输入 body paint，输入品类词即可，让消费者清晰知道该产品的功效用途。"
+                                        value={catInput}
+                                        onChange={(e) => setCatInput(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex gap-4 mb-8">
+                                    <button 
+                                        onClick={() => handleTranslate('cat')}
+                                        disabled={catLoading}
+                                        className="bg-slate-900 hover:bg-black text-white font-bold px-8 py-4 rounded-2xl transition-all disabled:opacity-50"
+                                    >
+                                        {catLoading ? '翻译中...' : '生成 24 国品类词'}
+                                    </button>
+                                    {Object.keys(catResults).length > 0 && (
+                                        <button 
+                                            onClick={() => copyResults(catResults)}
+                                            className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-bold px-8 py-4 rounded-2xl transition-all"
+                                        >
+                                            一键提取内容（“，”分隔）
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="result-grid">
+                                    {LANGUAGES.map(l => (
+                                        <div key={l} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{l}</div>
+                                            <div className="text-slate-700 font-medium break-words">{catResults[l] || '-'}</div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        </section>
+
+                        {/* 模块 2：Safe Use / Functions */}
+                        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden module-card hover:shadow-md">
+                            <div className="bg-blue-600 px-8 py-4 flex justify-between items-center">
+                                <h2 className="text-white font-bold text-xl">模块二：24 国 safe use / functions</h2>
+                                <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">Instruction & Effects</span>
+                            </div>
+                            <div className="p-8">
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-slate-600 mb-2">输入详细内容</label>
+                                    <textarea 
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-base focus:border-blue-400 outline-none transition-all min-h-[120px]"
+                                        placeholder="在此输入产品的 Safe Use（使用安全说明）或 Functions（产品功效功能）内容..."
+                                        value={infoInput}
+                                        onChange={(e) => setInfoInput(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex gap-4 mb-8">
+                                    <button 
+                                        onClick={() => handleTranslate('info')}
+                                        disabled={infoLoading}
+                                        className="bg-slate-900 hover:bg-black text-white font-bold px-8 py-4 rounded-2xl transition-all disabled:opacity-50"
+                                    >
+                                        {infoLoading ? '翻译中...' : '生成 24 国说明'}
+                                    </button>
+                                    {Object.keys(infoResults).length > 0 && (
+                                        <button 
+                                            onClick={() => copyResults(infoResults)}
+                                            className="bg-blue-100 text-blue-600 hover:bg-blue-200 font-bold px-8 py-4 rounded-2xl transition-all"
+                                        >
+                                            一键提取内容（“，”分隔）
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="result-grid">
+                                    {LANGUAGES.map(l => (
+                                        <div key={l} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{l}</div>
+                                            <div className="text-slate-700 font-medium text-sm leading-snug">{infoResults[l] || '-'}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
                 </div>
             );
         }
