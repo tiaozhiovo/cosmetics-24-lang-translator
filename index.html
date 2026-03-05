@@ -3,32 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>化妆品 24 国翻译助手 - Google版</title>
+    <title>化妆品 24 国翻译助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
         body { font-family: 'Noto Sans SC', sans-serif; }
-        .loading-shimmer {
-            background: linear-gradient(90deg, #f3f4f6 25%, #fce7f3 50%, #f3f4f6 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen pb-20">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState } = React;
 
-        // 语言代码映射表 (Google Translate 使用的代码)
         const LANG_MAP = {
             "英语": "en", "德语": "de", "法语": "fr", "西班牙语": "es", "意大利语": "it", 
             "丹麦语": "da", "捷克语": "cs", "瑞典语": "sv", "希腊语": "el", "芬兰语": "fi", 
@@ -44,17 +36,16 @@
             const [inputText, setInputText] = useState('');
             const [translations, setTranslations] = useState({});
             const [loading, setLoading] = useState(false);
-            const [copyStatus, setCopyStatus] = useState('一键提取 (逗号分隔)');
+            const [copyStatus, setCopyStatus] = useState('一键提取结果 (逗号分隔)');
 
             const translateText = async (text, targetLang) => {
                 try {
-                    // 使用免费的 Google 翻译镜像 API
                     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
                     const response = await fetch(url);
                     const data = await response.json();
-                    return data[0][0][0];
+                    // 拼接多行翻译结果
+                    return data[0].map(item => item[0]).join('');
                 } catch (error) {
-                    console.error(`${targetLang} 翻译失败`, error);
                     return "翻译出错";
                 }
             };
@@ -64,7 +55,6 @@
                 setLoading(true);
                 const results = {};
                 
-                // 并发请求提高速度
                 const promises = LANGUAGES.map(async (name) => {
                     const res = await translateText(inputText, LANG_MAP[name]);
                     results[name] = res;
@@ -79,63 +69,71 @@
                 const text = LANGUAGES.map(l => translations[l]).filter(Boolean).join(', ');
                 if (text) {
                     navigator.clipboard.writeText(text);
-                    setCopyStatus('✅ 已成功复制到剪贴板');
-                    setTimeout(() => setCopyStatus('一键提取 (逗号分隔)'), 2000);
+                    setCopyStatus('✅ 已成功复制');
+                    setTimeout(() => setCopyStatus('一键提取结果 (逗号分隔)'), 2000);
                 }
             };
 
             return (
-                <div className="max-w-5xl mx-auto px-6 py-10">
-                    <header className="mb-10 text-center">
-                        <div className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold mb-3">GOOGLE TRANSLATE ENGINE</div>
-                        <h1 className="text-3xl font-bold text-slate-800">化妆品多语言助手</h1>
-                        <p className="text-slate-500 mt-2 text-sm text-balance">输入化妆品功效、成分或品类，即刻获取 24 国语言翻译结果</p>
+                <div className="max-w-6xl mx-auto px-6 py-10">
+                    <header className="mb-8 text-left border-l-4 border-blue-600 pl-4">
+                        <h1 className="text-2xl font-bold text-slate-800 text-balance">化妆品多语言翻译助手</h1>
+                        <p className="text-slate-500 mt-1 text-sm">
+                            输入化妆品品类词、safe use 内容、functions 内容，即刻获取 24 国语言翻译结果
+                        </p>
                     </header>
 
-                    {/* Input Area */}
+                    {/* Input Section */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <input 
-                                type="text"
-                                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                placeholder="例如：美白精华液 / Hydrating Cream"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleTranslateAll()}
-                            />
+                        <textarea 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all min-h-[150px] custom-scrollbar"
+                            placeholder="请在此输入内容...&#10;示例：&#10;品类：保湿面霜&#10;Safe Use：避开眼睛周围使用。&#10;Functions：深度补水，锁住水分。"
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                        />
+                        <div className="flex justify-between items-center mt-4">
+                            <span className="text-xs text-slate-400 font-medium">支持多行输入，Google 引擎驱动</span>
                             <button 
                                 onClick={handleTranslateAll}
-                                disabled={loading}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition-all disabled:opacity-50 min-w-[140px]"
+                                disabled={loading || !inputText.trim()}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 py-3 rounded-xl transition-all disabled:opacity-30 flex items-center gap-2"
                             >
-                                {loading ? '翻译中...' : '生成翻译'}
+                                {loading && <span className="animate-spin text-lg">⏳</span>}
+                                {loading ? '正在处理 24 国语...' : '立即翻译'}
                             </button>
                         </div>
                     </div>
 
-                    {/* Action Bar */}
+                    {/* Output Section */}
                     {Object.keys(translations).length > 0 && (
-                        <div className="flex justify-end mb-4">
-                            <button 
-                                onClick={copyToClipboard}
-                                className="text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-5 py-2 rounded-lg border border-blue-100 transition-all"
-                            >
-                                {copyStatus}
-                            </button>
+                        <div className="animate-in fade-in duration-500">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="font-bold text-slate-700 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                    翻译结果汇总
+                                </h2>
+                                <button 
+                                    onClick={copyToClipboard}
+                                    className="text-sm font-bold text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 px-6 py-2 rounded-full transition-all shadow-sm"
+                                >
+                                    {copyStatus}
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {LANGUAGES.map(lang => (
+                                    <div key={lang} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                                        <div>
+                                            <div className="text-[11px] font-black text-blue-400 mb-3 uppercase tracking-widest">{lang}</div>
+                                            <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+                                                {translations[lang]}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
-
-                    {/* Result Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {LANGUAGES.map(lang => (
-                            <div key={lang} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all">
-                                <div className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-tighter border-b border-slate-50 pb-1">{lang}</div>
-                                <div className={`text-slate-700 font-medium ${loading && !translations[lang] ? 'loading-shimmer h-6 rounded' : ''}`}>
-                                    {translations[lang]}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             );
         }
